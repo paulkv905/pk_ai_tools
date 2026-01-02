@@ -32,3 +32,9 @@ print(answer)
 
 ```bash
 pip install pk-ai-tools
+
+Requires:
+
+Python 3.9+
+
+Ollama installed and running
