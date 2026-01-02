@@ -16,7 +16,7 @@ This library was originally created for personal use and has been generalized to
 
 ## Installation
 
-```bash
+bash
 pip install pk-ai-tools
 
 Requires:
@@ -38,6 +38,7 @@ rag = RAGPipeline(
 
 answer = rag.ask("What is this documentation about?")
 print(answer)
+
 
 
 
