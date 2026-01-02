@@ -14,6 +14,17 @@ The main goal of this project is to make it easy to:
 
 This library was originally created for personal use and has been generalized to be reusable across projects.
 
+## Installation
+
+```bash
+pip install pk-ai-tools
+
+Requires:
+
+Python 3.9+
+
+Ollama installed and running
+
 ## Quick example
 
 ```python
@@ -28,13 +39,5 @@ rag = RAGPipeline(
 answer = rag.ask("What is this documentation about?")
 print(answer)
 
-## Installation
 
-```bash
-pip install pk-ai-tools
 
-Requires:
-
-Python 3.9+
-
-Ollama installed and running
