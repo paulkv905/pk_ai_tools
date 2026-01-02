@@ -33,11 +33,14 @@ from pk_ai_tools import RAGPipeline
 rag = RAGPipeline(
     doc_folder="./data",
     language="en",
-    uuid="demo-user"
+    uuid="demo-user",
+    model_name="llama3"
 )
 
 answer = rag.ask("What is this documentation about?")
 print(answer)
+
+
 
 
 
