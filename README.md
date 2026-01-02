@@ -27,3 +27,8 @@ rag = RAGPipeline(
 
 answer = rag.ask("What is this documentation about?")
 print(answer)
+
+## Installation
+
+```bash
+pip install pk-ai-tools
