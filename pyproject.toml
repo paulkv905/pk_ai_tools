@@ -7,7 +7,7 @@ name = "pk-ai-tools"
 version = "0.1.0"
 description = "Simple RAG pipeline + document ingestion utilities (LangChain + Chroma + Ollama)."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10,<3.16"
 license = { text = "MIT" }
 authors = [
   { name = "Paul Kviding" }
@@ -16,15 +16,18 @@ keywords = ["rag", "langchain", "chroma", "ollama", "retrieval", "embeddings"]
 
 # Core deps your code relies on
 dependencies = [
-  "langchain",
-  "langchain-community",
-  "langchain-chroma",
-  "langchain-text-splitters",
-  "langchain-ollama",
-  "ollama",
-  "pandas",
-  "requests",
+  "langchain>=1.2,<2",
+  "langchain-core>=1.2,<2",
+  "langchain-community>=0.4,<1",
+  "langchain-chroma>=1.1,<2",
+  "langchain-ollama>=1.0,<2",
+  "chromadb>=1.4,<2",
+  "ollama>=0.6,<1",
+  "pandas>=2.0,<3",
+  "requests>=2.31,<3",
+  "zstandard>=0.25.0",
 ]
+
 
 classifiers = [
   "Programming Language :: Python :: 3",

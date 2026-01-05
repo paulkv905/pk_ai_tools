@@ -1,4 +1,4 @@
- pk-ai-tools
+pk-ai-tools
 
 `pk-ai-tools` is a small Python library that provides a reusable RAG (Retrieval-Augmented Generation) pipeline and a flexible document ingestion system.
 
@@ -39,9 +39,3 @@ rag = RAGPipeline(
 
 answer = rag.ask("What is this documentation about?")
 print(answer)
-
-
-
-
-
-
