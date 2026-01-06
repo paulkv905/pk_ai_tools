@@ -1,13 +1,21 @@
 import os
 import logging
+import time
+import uuid as uuidlib
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+from langchain_core.documents import Document
+from langchain_chroma import Chroma
 from langchain_classic.retrievers.multi_query import MultiQueryRetriever
-import json
-from .document_ingestor import IngestConfig, DocumentIngestor
+
+from document_ingestor import IngestConfig, DocumentIngestor
+try:
+    from langchain_ollama import OllamaEmbeddings
+except Exception:
+    from langchain_community.embeddings import OllamaEmbeddings
 
 
 
@@ -49,21 +57,86 @@ class RAGPipeline:
             self.retriever = self._create_retriever()
             self.chain = self._create_chain()
 
-    def load_memory(self, uuid):
-        os.makedirs(self.MEMORY_DIR, exist_ok=True)
-        filepath = os.path.join(self.MEMORY_DIR, f"{uuid}.json")
-        if os.path.exists(filepath):
-            with open(filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return []
+        self.memory_chroma_path = os.path.join("chroma_memory")
+        os.makedirs(self.memory_chroma_path, exist_ok=True)
 
-    def save_memory(self, uuid, prompt, answer):
-        memory = self.load_memory(uuid)
-        memory.append({"prompt": prompt, "answer": answer})
-        memory = memory[-self.MAX_MEMORY_LENGTH:]
-        filepath = os.path.join(self.MEMORY_DIR, f"{uuid}.json")
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(memory, f, indent=2, ensure_ascii=False)
+        self.memory_db = Chroma(
+            collection_name="rag_memory",
+            persist_directory=self.memory_chroma_path,
+            embedding_function=OllamaEmbeddings(model=self.embedding_model),
+        )
+
+    def load_memory(self, uuid: str):
+        """
+        Returns the same format as before:
+        [
+          {"prompt": "...", "answer": "..."},
+          ...
+        ]
+        """
+        # Fetch all memory docs for this user
+        try:
+            raw = self.memory_db._collection.get(where={"uuid": uuid})
+        except Exception:
+            # If collection not ready or no results
+            return []
+
+        docs = raw.get("documents", []) or []
+        metas = raw.get("metadatas", []) or []
+
+        # Sort by timestamp (oldest -> newest)
+        items = []
+        for doc_text, meta in zip(docs, metas):
+            ts = (meta or {}).get("ts", 0.0)
+
+            # We stored prompt/answer in metadata too (see save_memory),
+            # but if you ever change that, we also keep a safe fallback parse.
+            prompt = (meta or {}).get("prompt")
+            answer = (meta or {}).get("answer")
+
+            if prompt is None or answer is None:
+                # Fallback: try to parse from doc text if needed
+                # Expected format:
+                # User: ...
+                # AI: ...
+                text = doc_text or ""
+                if "\nAI:" in text and text.startswith("User:"):
+                    p = text.split("\nAI:", 1)[0].replace("User:", "", 1).strip()
+                    a = text.split("\nAI:", 1)[1].strip()
+                    prompt, answer = p, a
+                else:
+                    prompt, answer = "", text
+
+            items.append((ts, {"prompt": prompt, "answer": answer}))
+
+        items.sort(key=lambda x: x[0])
+        memory = [x[1] for x in items][-self.MAX_MEMORY_LENGTH:]
+        return memory
+
+    def save_memory(self, uuid: str, prompt: str, answer: str):
+        ts = time.time()
+
+        # Store as a Document (content + metadata)
+        doc = Document(
+            page_content=f"User: {prompt}\nAI: {answer}",
+            metadata={
+                "uuid": uuid,
+                "ts": ts,
+                "prompt": prompt,
+                "answer": answer,
+            },
+        )
+
+        # Unique id so we never overwrite accidentally
+        doc_id = f"{uuid}-{int(ts * 1000)}-{uuidlib.uuid4().hex}"
+
+        self.memory_db.add_documents([doc], ids=[doc_id])
+
+        # Ensure persistence (depending on langchain_chroma version, this may be optional)
+        try:
+            self.memory_db.persist()
+        except Exception:
+            pass
 
     def build_context_from_memory(self, uuid):
         memory = self.load_memory(uuid)
