@@ -11,7 +11,7 @@ from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 
-from document_ingestor import IngestConfig, DocumentIngestor
+from .document_ingestor import IngestConfig, DocumentIngestor
 try:
     from langchain_ollama import OllamaEmbeddings
 except Exception:
