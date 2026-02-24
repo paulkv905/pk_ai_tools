@@ -11,6 +11,8 @@ from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 
+from pathlib import Path
+
 from .document_ingestor import IngestConfig, DocumentIngestor
 try:
     from langchain_ollama import OllamaEmbeddings
@@ -44,25 +46,28 @@ class RAGPipeline:
         self.chain = None
         self.uuid = uuid
         self.language = language
-        self.MEMORY_DIR = memory_dir
-        self.MAX_MEMORY_LENGTH = max_memory_length
+        # --- basic settings ---
+        self.memory_dir = memory_dir  # ✅ use ONE consistent name
+        self.max_memory_length = max_memory_length  # ✅ same here
         self._setup_logging()
         self.LibreOffice_path = libre_office_path
         self.ai_template = ai_template
         self.system_prompt = system_prompt
 
-        self.llm = ChatOllama(model=self.model_name,temperature=0.3)
+        # --- LLM + vector DB ---
+        self.llm = ChatOllama(model=self.model_name, temperature=0.3)
         self.vector_db = self._setup_vector_db()
         if self.vector_db:
             self.retriever = self._create_retriever()
             self.chain = self._create_chain()
 
-        self.memory_chroma_path = os.path.join("chroma_memory")
-        os.makedirs(self.memory_chroma_path, exist_ok=True)
+        # --- Memory DB (ALWAYS writable location) ---
+        self.memory_chroma_path = Path(self.memory_dir) / "chroma_memory"
+        self.memory_chroma_path.mkdir(parents=True, exist_ok=True)
 
         self.memory_db = Chroma(
             collection_name="rag_memory",
-            persist_directory=self.memory_chroma_path,
+            persist_directory=str(self.memory_chroma_path),  # ✅ always string
             embedding_function=OllamaEmbeddings(model=self.embedding_model),
         )
 
@@ -110,7 +115,7 @@ class RAGPipeline:
             items.append((ts, {"prompt": prompt, "answer": answer}))
 
         items.sort(key=lambda x: x[0])
-        memory = [x[1] for x in items][-self.MAX_MEMORY_LENGTH:]
+        memory = [x[1] for x in items][-self.max_memory_length:]
         return memory
 
     def save_memory(self, uuid: str, prompt: str, answer: str):
