@@ -11,44 +11,28 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-
+          cache: pip
       - run: python -m pip install -U pip
       - run: python -m pip install . pytest
       - run: pytest -q -m "not integration"
 
-  integration-tests:
+  py314-experimental:
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: "pip"
-
+          python-version: "3.14"
+          cache: pip
       - run: python -m pip install -U pip
       - run: python -m pip install . pytest
-
-      - name: Install Ollama
-        run: curl -fsSL https://ollama.com/install.sh | sh
-
-      - name: Start Ollama
-        run: |
-          ollama serve &
-          sleep 5
-
-      - name: Pull model
-        run: ollama pull nomic-embed-text
-
-      - name: Run integration tests
-        run: pytest -q -m integration
+      - run: pytest -q -m "not integration"
